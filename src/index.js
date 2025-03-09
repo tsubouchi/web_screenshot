@@ -20,6 +20,15 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// アプリケーション設定情報をログ出力
+console.log('アプリケーション設定:', {
+  NODE_ENV: process.env.NODE_ENV,
+  PORT: PORT,
+  CLOUD_RUN_URL: process.env.CLOUD_RUN_URL,
+  FIREBASE_DATABASE_URL: process.env.FIREBASE_DATABASE_URL,
+  FIREBASE_STORAGE_BUCKET: process.env.FIREBASE_STORAGE_BUCKET
+});
+
 // CORS設定を改善
 const corsOptions = {
   origin: [
@@ -95,6 +104,8 @@ app.use((err, req, res, next) => {
 });
 
 // サーバー起動
-app.listen(PORT, () => {
-  console.log(`サーバーが起動しました: http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`サーバーが起動しました: http://0.0.0.0:${PORT}`);
+  console.log(`環境: ${process.env.NODE_ENV || 'development'}`);
+  console.log('コンテナが正常に起動し、リクエストを受け付ける準備ができました');
 }); 

@@ -35,5 +35,8 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 # アプリケーションを実行するポートを公開
 EXPOSE 8080
 
+# ヘルスチェックのタイムアウトを設定
+ENV TIMEOUT=300000
+
 # アプリケーションを起動
 CMD ["node", "src/index.js"] 
