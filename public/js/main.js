@@ -1,13 +1,34 @@
 // デバッグモード
 const debugMode = false;
 
-// 設定情報の初期値
+// 設定情報の初期値（最小限のもののみ）
 let config = {
-  API_BASE_URL: window.location.hostname === 'localhost' 
-    ? 'http://localhost:3000' 
-    : 'https://web-screenshot-414448831707.asia-northeast1.run.app',
+  API_BASE_URL: determineInitialApiBaseUrl(),
   NODE_ENV: 'production'
 };
+
+/**
+ * 初期APIベースURLを決定する関数
+ * ホスト名に基づいて適切なURLを判定し、ハードコーディングを最小限に抑える
+ */
+function determineInitialApiBaseUrl() {
+  const hostname = window.location.hostname;
+  
+  // ローカル開発環境
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:3000';
+  }
+  
+  // Firebase Hosting環境（リクエスト転送を利用）
+  if (hostname.includes('web-screenshot-demo-c3d64')) {
+    // 相対パスを使用して現在のホストからAPIにアクセス
+    return '';
+  }
+  
+  // その他の環境（デフォルトのCloud Run URL）
+  // 注: このURLはサーバー側の/api/configエンドポイントから正確な値に更新される
+  return 'https://web-screenshot-414448831707.asia-northeast1.run.app';
+}
 
 // デバッグ情報を出力
 console.log('環境情報 (初期値):', {
@@ -21,7 +42,9 @@ console.log('環境情報 (初期値):', {
 async function loadConfig() {
   try {
     // 初期APIベースURLを使用して設定を取得
-    const configUrl = `${config.API_BASE_URL}/api/config`;
+    // Firebase Hosting環境では相対パスを使用し、リクエスト転送を活用
+    const apiUrl = config.API_BASE_URL || '';
+    const configUrl = `${apiUrl}/api/config`;
     console.log('設定取得URL:', configUrl);
     
     const response = await fetch(configUrl);

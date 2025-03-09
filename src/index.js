@@ -83,11 +83,12 @@ app.get('/api/config', (req, res) => {
   const publicConfig = {
     API_BASE_URL: process.env.NODE_ENV === 'development' 
       ? `http://localhost:${PORT}` 
-      : process.env.CLOUD_RUN_URL || 'https://web-screenshot-1015153191846.asia-northeast1.run.app',
+      : process.env.CLOUD_RUN_URL || 'https://web-screenshot-414448831707.asia-northeast1.run.app',
     FIREBASE_HOSTING_URL: process.env.FIREBASE_HOSTING_URL || 'https://web-screenshot-demo-c3d64.web.app',
     NODE_ENV: process.env.NODE_ENV || 'development'
   };
   
+  console.log('設定を提供しています:', publicConfig);
   res.json(publicConfig);
 });
 
