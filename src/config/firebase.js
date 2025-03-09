@@ -93,55 +93,79 @@ if (process.env.NODE_ENV === 'development') {
   });
 }
 
-// Firebaseアプリが既に初期化されていないことを確認
-let firebaseApp;
 try {
-  // Firebaseアプリを初期化
-  firebaseApp = admin.initializeApp(firebaseAdminConfig);
-  console.log('Firebase Adminを初期化しました');
-  
-  // 明示的にStorageバケットを取得して存在確認
-  const bucket = admin.storage().bucket();
-  console.log(`StorageBucketに接続しました: ${bucket.name}`);
-  
-  // 権限の問題があるため、バケットの存在確認は行わない
-  // 代わりに単純なファイル操作でバケットの動作確認を行う
-  try {
-    // テスト用の空ファイルを作成
-    const testFile = bucket.file('system_test.txt');
-    const stream = testFile.createWriteStream({
-      metadata: {
-        contentType: 'text/plain',
-      }
-    });
-    
-    stream.on('error', (err) => {
-      console.error('Firebase Storageテスト失敗:', err);
-    });
-    
-    stream.on('finish', () => {
-      console.log('Firebase Storageテスト成功: ファイル書き込みOK');
-      
-      // テストファイルを削除（オプション）
-      testFile.delete().catch((err) => {
-        console.log('テストファイル削除中にエラー:', err);
-      });
-    });
-    
-    stream.end('Test content');
-  } catch (error) {
-    console.error('Firebase Storageテストエラー:', error);
-  }
-} catch (error) {
-  // 既に初期化されている場合はそのアプリを取得
-  console.warn('Firebase Adminは既に初期化されています:', error.message);
-  firebaseApp = admin.app();
-}
+  // Firebase初期化
+  const app = admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: normalizeDatabaseUrl(process.env.FIREBASE_DATABASE_URL),
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET
+  });
 
-// サービスをエクスポート
-export const auth = admin.auth();
-export const db = admin.database();
-export const storage = admin.storage();
+  // 環境変数の確認ログを追加
+  console.log('Firebase初期化設定:');
+  console.log('PROJECT_ID:', process.env.FIREBASE_ADMIN_PROJECT_ID);
+  console.log('CLIENT_EMAIL:', process.env.FIREBASE_ADMIN_CLIENT_EMAIL);
+  console.log('DATABASE_URL:', process.env.FIREBASE_DATABASE_URL);
+  console.log('STORAGE_BUCKET:', process.env.FIREBASE_STORAGE_BUCKET);
+  console.log('NODE_ENV:', process.env.NODE_ENV);
+
+  console.log('Firebase初期化成功');
+  
+  // サービスの初期化
+  const auth = app.auth();
+  const db = app.database();
+  const storage = app.storage();
+
+  // 開発環境の場合、テスト接続を実行
+  if (process.env.NODE_ENV === 'development') {
+    // 明示的にStorageバケットを取得して存在確認
+    const bucket = admin.storage().bucket();
+    console.log(`StorageBucketに接続しました: ${bucket.name}`);
+    
+    // 権限の問題があるため、バケットの存在確認は行わない
+    // 代わりに単純なファイル操作でバケットの動作確認を行う
+    try {
+      // テスト用の空ファイルを作成
+      const testFile = bucket.file('system_test.txt');
+      const stream = testFile.createWriteStream({
+        metadata: {
+          contentType: 'text/plain',
+        }
+      });
+      
+      stream.on('error', (err) => {
+        console.error('Firebase Storageテスト失敗:', err);
+      });
+      
+      stream.on('finish', () => {
+        console.log('Firebase Storageテスト成功: ファイル書き込みOK');
+        
+        // テストファイルを削除（オプション）
+        testFile.delete().catch((err) => {
+          console.log('テストファイル削除中にエラー:', err);
+        });
+      });
+      
+      stream.end('Test content');
+    } catch (error) {
+      console.error('Firebase Storageテストエラー:', error);
+    }
+  }
+
+  // サービスをエクスポート
+  export { auth, db, storage };
+} catch (error) {
+  console.error('Firebaseの初期化に失敗しました:', error);
+  console.error('エラーの詳細:', JSON.stringify(error, null, 2));
+  console.error('環境変数:', {
+    PROJECT_ID: process.env.FIREBASE_ADMIN_PROJECT_ID,
+    CLIENT_EMAIL: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+    DATABASE_URL: process.env.FIREBASE_DATABASE_URL,
+    STORAGE_BUCKET: process.env.FIREBASE_STORAGE_BUCKET,
+    NODE_ENV: process.env.NODE_ENV
+  });
+  throw error;
+}
 
 // データベース接続テスト
 if (process.env.NODE_ENV === 'development') {
