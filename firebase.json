@@ -12,7 +12,7 @@
     "rewrites": [
       {
         "source": "/api/**",
-        "destination": "https://web-screenshot-1015153191846.asia-northeast1.run.app/api/**"
+        "destination": "https://web-screenshot-414448831707.asia-northeast1.run.app/api/**"
       },
       {
         "source": "**",
