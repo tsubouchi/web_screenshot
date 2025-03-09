@@ -329,39 +329,289 @@ document.addEventListener('DOMContentLoaded', async function() {
     console.error('設定読み込みエラー:', error);
   }
   
-  // フォームのサブミット処理
-  const form = document.getElementById('screenshot-form');
-  const urlInput = document.getElementById('url-input');
+  // タブ切り替え機能
+  setupTabs();
   
-  form.addEventListener('submit', async function(event) {
-    event.preventDefault(); // フォームのデフォルト送信を防止
-    console.log('フォームが送信されました');
-    
-    try {
-      const inputUrl = urlInput.value.trim();
-      const processedUrl = processYoutubeUrl(inputUrl);
-      
-      console.log('処理されたURL:', processedUrl);
-      await takeScreenshot(processedUrl);
-    } catch (error) {
-      console.error('フォーム送信エラー:', error);
-      // エラーはtakeScreenshot内で処理されているため、ここでは何もしない
-    }
-  });
+  // ウェブサイトのスクリーンショット
+  const screenshotBtn = document.getElementById('screenshot-btn');
+  const urlInput = document.getElementById('url');
   
-  // 例: URLパラメータからURLを取得して設定
+  if (screenshotBtn && urlInput) {
+    screenshotBtn.addEventListener('click', async function() {
+      try {
+        const inputUrl = urlInput.value.trim();
+        console.log('通常URLスクリーンショットリクエスト:', inputUrl);
+        if (!inputUrl) {
+          showError('URLを入力してください');
+          return;
+        }
+        await takeScreenshot(inputUrl);
+      } catch (error) {
+        console.error('スクリーンショット取得エラー:', error);
+      }
+    });
+  } else {
+    console.warn('ウェブサイトフォーム要素が見つかりません:', { screenshotBtn, urlInput });
+  }
+  
+  // YouTube動画のスクリーンショット
+  const youtubeBtn = document.getElementById('youtube-btn');
+  const youtubeUrlInput = document.getElementById('youtube-url');
+  const timestampInput = document.getElementById('timestamp');
+  
+  if (youtubeBtn && youtubeUrlInput && timestampInput) {
+    youtubeBtn.addEventListener('click', async function() {
+      try {
+        const youtubeUrl = youtubeUrlInput.value.trim();
+        const timestamp = parseInt(timestampInput.value) || 0;
+        console.log('YouTube動画スクリーンショットリクエスト:', { youtubeUrl, timestamp });
+        if (!youtubeUrl) {
+          showError('YouTube URLを入力してください');
+          return;
+        }
+        await takeYoutubeScreenshot(youtubeUrl, timestamp);
+      } catch (error) {
+        console.error('YouTube スクリーンショット取得エラー:', error);
+      }
+    });
+  } else {
+    console.warn('YouTube動画フォーム要素が見つかりません:', { youtubeBtn, youtubeUrlInput, timestampInput });
+  }
+  
+  // YouTube Shortsのスクリーンショット
+  const shortsBtn = document.getElementById('shorts-btn');
+  const shortsUrlInput = document.getElementById('shorts-url');
+  const shortsTimestampInput = document.getElementById('shorts-timestamp');
+  
+  if (shortsBtn && shortsUrlInput && shortsTimestampInput) {
+    shortsBtn.addEventListener('click', async function() {
+      try {
+        const shortsUrl = shortsUrlInput.value.trim();
+        const timestamp = parseInt(shortsTimestampInput.value) || 0;
+        console.log('YouTube Shortsスクリーンショットリクエスト:', { shortsUrl, timestamp });
+        if (!shortsUrl) {
+          showError('YouTube Shorts URLを入力してください');
+          return;
+        }
+        await takeShortsScreenshot(shortsUrl, timestamp);
+      } catch (error) {
+        console.error('Shorts スクリーンショット取得エラー:', error);
+      }
+    });
+  } else {
+    console.warn('YouTube Shortsフォーム要素が見つかりません:', { shortsBtn, shortsUrlInput, shortsTimestampInput });
+  }
+  
+  // URLパラメータからURLを取得して設定
   const urlParams = new URLSearchParams(window.location.search);
   const urlFromParam = urlParams.get('url');
   
-  if (urlFromParam) {
+  if (urlFromParam && urlInput) {
     urlInput.value = urlFromParam;
     console.log('URLパラメータからURLを設定しました:', urlFromParam);
   }
   
   // アニメーションの追加
   setTimeout(() => {
-    document.querySelector('.container').classList.add('loaded');
+    const container = document.querySelector('.container');
+    if (container) {
+      container.classList.add('loaded');
+    }
   }, 100);
   
   console.log('アプリケーションの初期化が完了しました');
 });
+
+// タブ切り替え機能のセットアップ
+function setupTabs() {
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const tabContents = document.querySelectorAll('.tab-content');
+  
+  if (!tabBtns.length || !tabContents.length) {
+    console.warn('タブ要素が見つかりません');
+    return;
+  }
+  
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      // アクティブなタブボタンを更新
+      tabBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      // タブコンテンツを更新
+      const tabId = btn.getAttribute('data-tab');
+      tabContents.forEach(content => {
+        content.classList.remove('active');
+      });
+      
+      const activeTab = document.getElementById(`${tabId}-tab`);
+      if (activeTab) {
+        activeTab.classList.add('active');
+      }
+    });
+  });
+}
+
+// YouTube動画のスクリーンショット取得
+async function takeYoutubeScreenshot(youtubeUrl, timestamp) {
+  try {
+    // バリデーション
+    if (!youtubeUrl) {
+      throw new Error('YouTube URLが入力されていません');
+    }
+
+    if (!isValidYoutubeUrl(youtubeUrl)) {
+      throw new Error('有効なYouTube URLを入力してください');
+    }
+
+    // UI更新
+    updateUIState('loading');
+    
+    console.log('YouTube スクリーンショットリクエスト準備:', {
+      youtubeUrl: youtubeUrl,
+      timestamp: timestamp,
+      API_BASE_URL: config.API_BASE_URL,
+      完全URL: `${config.API_BASE_URL}/api/youtube/screenshot`
+    });
+
+    // フェッチオプション設定
+    const fetchOptions = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: youtubeUrl, timestamp: timestamp })
+    };
+    
+    // デバッグログ
+    console.log('YouTube API呼び出し開始:', `${config.API_BASE_URL}/api/youtube/screenshot`, fetchOptions);
+    
+    // APIリクエスト実行
+    const response = await fetch(`${config.API_BASE_URL}/api/youtube/screenshot`, fetchOptions);
+    
+    // レスポンスチェック
+    if (!response.ok) {
+      console.error('YouTube APIエラーレスポンス:', response.status, response.statusText);
+      let errorText;
+      try {
+        const errorData = await response.json();
+        errorText = errorData.error || `エラー: ${response.status} ${response.statusText}`;
+      } catch (e) {
+        try {
+          errorText = await response.text();
+          if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
+            errorText = `HTML レスポンス (${errorText.length} 文字) - API エンドポイントが正しく設定されていない可能性があります`;
+          }
+        } catch (textError) {
+          errorText = `エラー: ${response.status} ${response.statusText}`;
+        }
+      }
+      throw new Error(errorText);
+    }
+
+    // 正常なレスポンスの処理
+    const data = await response.json();
+    console.log('YouTube スクリーンショット API レスポンス:', data);
+    
+    if (!data.publicUrl) {
+      throw new Error('スクリーンショットの URL が見つかりません');
+    }
+    
+    // 結果を表示
+    showScreenshot(data.publicUrl, youtubeUrl);
+    updateUIState('success');
+    saveToHistory(youtubeUrl, data.publicUrl);
+    
+    return data;
+  } catch (error) {
+    console.error('YouTube スクリーンショット取得中にエラーが発生しました:', error);
+    showError(error.message);
+    updateUIState('error');
+    throw error;
+  }
+}
+
+// YouTube Shortsのスクリーンショット取得
+async function takeShortsScreenshot(shortsUrl, timestamp) {
+  try {
+    // バリデーション
+    if (!shortsUrl) {
+      throw new Error('YouTube Shorts URLが入力されていません');
+    }
+
+    if (!isValidShortsUrl(shortsUrl)) {
+      throw new Error('有効なYouTube Shorts URLを入力してください');
+    }
+
+    // UI更新
+    updateUIState('loading');
+    
+    console.log('Shorts スクリーンショットリクエスト準備:', {
+      shortsUrl: shortsUrl,
+      timestamp: timestamp,
+      API_BASE_URL: config.API_BASE_URL,
+      完全URL: `${config.API_BASE_URL}/api/shorts/screenshot`
+    });
+
+    // フェッチオプション設定
+    const fetchOptions = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: shortsUrl, timestamp: timestamp })
+    };
+    
+    // デバッグログ
+    console.log('Shorts API呼び出し開始:', `${config.API_BASE_URL}/api/shorts/screenshot`, fetchOptions);
+    
+    // APIリクエスト実行
+    const response = await fetch(`${config.API_BASE_URL}/api/shorts/screenshot`, fetchOptions);
+    
+    // レスポンスチェック
+    if (!response.ok) {
+      console.error('Shorts APIエラーレスポンス:', response.status, response.statusText);
+      let errorText;
+      try {
+        const errorData = await response.json();
+        errorText = errorData.error || `エラー: ${response.status} ${response.statusText}`;
+      } catch (e) {
+        try {
+          errorText = await response.text();
+          if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
+            errorText = `HTML レスポンス (${errorText.length} 文字) - API エンドポイントが正しく設定されていない可能性があります`;
+          }
+        } catch (textError) {
+          errorText = `エラー: ${response.status} ${response.statusText}`;
+        }
+      }
+      throw new Error(errorText);
+    }
+
+    // 正常なレスポンスの処理
+    const data = await response.json();
+    console.log('Shorts スクリーンショット API レスポンス:', data);
+    
+    if (!data.publicUrl) {
+      throw new Error('スクリーンショットの URL が見つかりません');
+    }
+    
+    // 結果を表示
+    showScreenshot(data.publicUrl, shortsUrl);
+    updateUIState('success');
+    saveToHistory(shortsUrl, data.publicUrl);
+    
+    return data;
+  } catch (error) {
+    console.error('Shorts スクリーンショット取得中にエラーが発生しました:', error);
+    showError(error.message);
+    updateUIState('error');
+    throw error;
+  }
+}
+
+// YouTubeのURL検証
+function isValidYoutubeUrl(url) {
+  return url.match(/^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)[a-zA-Z0-9_-]{11}/i) !== null;
+}
+
+// YouTube ShortsのURL検証
+function isValidShortsUrl(url) {
+  return url.match(/^(https?:\/\/)?(www\.)?(youtube\.com\/shorts\/)[a-zA-Z0-9_-]{11}/i) !== null;
+}
