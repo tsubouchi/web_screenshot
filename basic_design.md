@@ -369,9 +369,10 @@
 本サービスは以下のコンポーネントを使用して本番環境にデプロイします：
 
 ```
-[ユーザー] --> [Firebase Hosting] --> [HTML/CSS/JS]
-                     |
-                     v
+[ユーザー] --> [Firebase Hosting] -----------> [HTML/CSS/JS]
+                     |                              ^
+                     | API リクエスト (/api/**)     | 
+                     v                              |
               [Google Cloud Run] --> [Express サーバー]
                      |
                      v
@@ -379,6 +380,13 @@
               - Realtime Database
               - Storage
 ```
+
+### 実際のデプロイ構成
+
+- **Firebase Hosting URL**: https://web-screenshot-demo-c3d64.web.app
+- **Cloud Run サービスURL**: https://web-screenshot-1015153191846.asia-northeast1.run.app
+- **Firebase プロジェクトID**: web-screenshot-demo-c3d64
+- **GCP プロジェクトID**: global-brook-453206-b9
 
 ### 1. Firebase Hosting (フロントエンド)
 
@@ -389,19 +397,22 @@
   - Cloud Runへのリクエスト転送設定
   - キャッシュ設定
 
+**注意点**: FirebaseプロジェクトとGCPプロジェクトが異なる場合、従来の`run`セクションによる連携方法では失敗します。代わりに、以下のように直接URLを指定する方法を使用します。
+
 ### 2. Google Cloud Run (バックエンド)
 
 - **役割**: スクリーンショットサービスの実行環境
 - **構成ファイル**: `Dockerfile`
+- **デプロイ済みサービス**: web-screenshot （URL: https://web-screenshot-1015153191846.asia-northeast1.run.app）
 - **主要設定**:
   - コンテナイメージ: Node.js 18ベース
   - Puppeteerの依存関係インストール設定
-  - 適切なメモリ割り当て
-  - スケーリング設定
+  - メモリ割り当て: 2GB（Puppeteerの動作に必要）
+  - タイムアウト: 5分（スクリーンショット処理に十分な時間）
 
-### 3. Firebase設定ファイル
+### 3. Firebase設定ファイル（実装詳細）
 
-#### firebase.json
+#### firebase.json（実際の設定）
 ```json
 {
   "database": {
@@ -417,10 +428,7 @@
     "rewrites": [
       {
         "source": "/api/**",
-        "run": {
-          "serviceId": "web-screenshot",
-          "region": "asia-northeast1"
-        }
+        "destination": "https://web-screenshot-1015153191846.asia-northeast1.run.app/api/**"
       },
       {
         "source": "**",
@@ -454,53 +462,65 @@ service firebase.storage {
 }
 ```
 
-### 4. デプロイ手順
+### 4. 本番環境のデプロイ手順（実績ベース）
 
-#### Firebase Hostingデプロイ
+#### バックエンド: Google Cloud Runデプロイ
+
+1. 必要なAPIの有効化
 ```bash
-# Firebase CLIをインストール
-npm install -g firebase-tools
-
-# ログイン
-firebase login
-
-# プロジェクト初期化（初回のみ）
-firebase init
-
-# デプロイ
-firebase deploy --only hosting
+gcloud services enable cloudbuild.googleapis.com
+gcloud services enable run.googleapis.com
 ```
 
-#### Google Cloud Runデプロイ
-```bash
-# Google Cloud SDKをインストール・設定
+2. サービスアカウント設定の確認
+必要なサービスアカウントJSONファイル（`serviceAccountKey.json`）がプロジェクトルートに配置されていることを確認します。
 
-# サービスをデプロイ
+3. Cloud Runにデプロイ
+```bash
 gcloud run deploy web-screenshot \
   --source . \
   --platform managed \
   --region asia-northeast1 \
   --allow-unauthenticated \
-  --project=YOUR_PROJECT_ID
+  --memory 2Gi \
+  --timeout=5m \
+  --set-env-vars="NODE_ENV=production,PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true,PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable,FIREBASE_ADMIN_PROJECT_ID=web-screenshot-demo-c3d64,FIREBASE_ADMIN_CLIENT_EMAIL=firebase-adminsdk-fbsvc@web-screenshot-demo-c3d64.iam.gserviceaccount.com,FIREBASE_DATABASE_URL=https://web-screenshot-demo-c3d64-default-rtdb.firebaseio.com/,FIREBASE_STORAGE_BUCKET=web-screenshot-demo-c3d64.firebasestorage.app,USE_FIREBASE_STORAGE=true,SKIP_LOCAL_STORAGE=true,LOCAL_STORAGE_PATH=data/uploads"
 ```
 
-### 5. デプロイ時の注意点
+4. デプロイ完了確認
+デプロイが成功すると、サービスURLが表示されます。このURLを次のFirebase Hostingの設定で使用します。
+
+#### フロントエンド: Firebase Hostingデプロイ
+
+1. `firebase.json`ファイルを編集し、上記のCloud RunサービスURLを設定します。
+
+2. Firebaseデプロイ
+```bash
+firebase deploy --only hosting
+```
+
+3. デプロイ完了確認
+デプロイが成功すると、Hosting URLが表示されます。
+
+### 5. デプロイ時の注意点（実績ベース）
 
 - **Firebase Storage Bucket名**: バケット名は`PROJECT_ID.firebasestorage.app`形式で設定
 - **Firebase Database URL**: トレイリングスラッシュ（/）を含める
-- **Cloud RunからFirebaseへの認証**: サービスアカウント権限の設定
+- **Cloud RunからFirebaseへの認証**: serviceAccountKey.jsonを使用
 - **環境変数**: 本番環境用の環境変数をCloud Run設定に追加
-- **APIルーティング**: Firebase HostingからCloud Runへの正しいルーティング設定
+- **プロジェクトID不一致問題**: GCPとFirebaseのプロジェクトIDが異なる場合は、直接URL指定方式を使用
+- **メモリ設定**: Puppeteerを使用するため、最低2GBのメモリ割り当てが必要
 
 ### 6. APIアクセスエラーのトラブルシューティング
 
 - **Cloud Run Admin API**: APIが有効化されていることを確認
-- **サービス名・リージョン**: firebase.jsonの設定と実際のデプロイ先が一致しているか確認
-- **CORS設定**: 適切なCORS設定がされているか確認
-- **権限設定**: 必要なサービスアカウント権限が付与されているか確認
+- **CORS設定**: cors-config.jsonファイルで適切なオリジンを設定
+- **Firebase Hostingのリライト設定**: Cloud RunサービスのURLが正確に指定されているか確認
+- **Cloud Runサービスのアクセス設定**: `--allow-unauthenticated`フラグが設定されているか確認
 
-### 7. 追加必要なFirebase設定
+### 7. 本番環境での追加設定
 
-- **Firebase Authentication**: 必要に応じて認証設定を追加
-- **セキュリティルール**: 本番環境ではより厳格なルールを設定
-- **クロスリージョン設定**: 必要に応じてマルチリージョン設定を検討
+- **Firebase Security Rules**: 本番環境ではセキュリティルールを厳格化
+- **CORS設定の最適化**: 必要なオリジンのみを許可
+- **スケーリング設定**: トラフィックに応じた適切なスケーリング設定
+- **監視とロギング**: Cloud Loggingによるモニタリング設定
