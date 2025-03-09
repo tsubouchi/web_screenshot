@@ -113,21 +113,35 @@ FIREBASE_HOSTING_URL=https://web-screenshot-demo-c3d64.web.app
 
 ```
 screenshot-service/
-├── data/uploads/       # ローカル保存先ディレクトリ
-├── public/             # 静的ファイル
-│   ├── css/            # スタイルシート
-│   ├── js/             # クライアントサイドJavaScript
-│   └── index.html      # メインページHTML
-├── src/                # サーバーサイドコード
-│   ├── config/         # 設定ファイル
-│   │   └── firebase.js # Firebase設定
-│   ├── routes/         # APIルート
-│   │   └── screenshot.js # スクリーンショット関連API
-│   └── index.js        # アプリエントリーポイント
-├── .env                # 環境変数（非公開）
-├── .env.sample         # 環境変数のサンプル
-├── package.json        # NPM依存関係
-└── README.md           # このドキュメント
+├── .dockerignore           # Dockerビルド時に除外するファイル
+├── .env                    # 環境変数（非公開）
+├── .env.sample             # 環境変数のサンプル
+├── .firebase/              # Firebaseデプロイ用一時ファイル
+├── .gitignore              # Gitの除外ファイル設定
+├── Dockerfile              # コンテナビルド設定
+├── README.md               # このドキュメント
+├── basic_design.md         # 詳細設計書
+├── cors-config.json        # CORS設定
+├── data/                   # ローカルデータディレクトリ
+│   └── uploads/            # スクリーンショット保存先
+├── database.rules.json     # Firebaseデータベースルール
+├── firebase.json           # Firebase設定ファイル
+├── node_modules/           # 依存パッケージ
+├── package.json            # NPM依存関係
+├── package-lock.json       # 依存パッケージのバージョン固定
+├── public/                 # 静的ファイル（フロントエンド）
+│   ├── css/                # スタイルシート
+│   ├── js/                 # クライアントサイドJavaScript
+│   └── index.html          # メインページHTML
+├── scripts/                # デプロイスクリプト等
+├── serviceAccountKey.json  # Firebase認証情報（非公開）
+├── src/                    # サーバーサイドコード
+│   ├── config/             # 設定ファイル
+│   │   └── firebase.js     # Firebase設定
+│   ├── routes/             # APIルート
+│   │   └── screenshot.js   # スクリーンショット関連API
+│   └── index.js            # アプリエントリーポイント
+└── storage.rules           # Firebaseストレージルール
 ```
 
 ## APIエンドポイント
