@@ -114,8 +114,13 @@ function getFilenameFromPath(path) {
 }
 
 // ウェブサイトのスクリーンショット取得
-screenshotBtn.addEventListener('click', async () => {
+screenshotBtn.addEventListener('click', async (event) => {
+  // デフォルトのフォーム送信動作を防止
+  event.preventDefault();
+  console.log('スクリーンショット取得ボタンがクリックされました');
+  
   const url = urlInput.value.trim();
+  console.log('入力URL:', url);
   
   if (!url) {
     showError('URLを入力してください');
@@ -130,7 +135,12 @@ screenshotBtn.addEventListener('click', async () => {
   showLoading('スクリーンショットを取得中...');
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/screenshot`, {
+    // リクエスト先のURLをログに出力
+    const requestUrl = `${API_BASE_URL}/api/screenshot`;
+    console.log('APIリクエスト先:', requestUrl);
+    console.log('リクエストボディ:', { url });
+    
+    const response = await fetch(requestUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -139,34 +149,58 @@ screenshotBtn.addEventListener('click', async () => {
       body: JSON.stringify({ url })
     });
     
+    console.log('APIレスポンスステータス:', response.status);
+    
     if (!response.ok) {
       let errorMessage = 'スクリーンショットの取得に失敗しました';
       try {
-        const errorData = await response.json();
-        if (errorData && errorData.error) {
-          errorMessage = errorData.error;
+        // レスポンスの内容をログに出力（デバッグ用）
+        const responseText = await response.text();
+        console.error('エラーレスポンス本文:', responseText);
+        
+        // JSONとしてパース可能か試みる
+        try {
+          const errorData = JSON.parse(responseText);
+          if (errorData && errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (parseError) {
+          console.error('JSONパースエラー:', parseError);
+          // HTMLが返ってきているかどうかをチェック
+          if (responseText.includes('<!DOCTYPE') || responseText.includes('<html>')) {
+            errorMessage = 'サーバーがHTMLを返しました。APIエンドポイントの設定を確認してください。';
+          } else {
+            errorMessage = `サーバーエラー: ${response.status} ${response.statusText}`;
+          }
         }
-      } catch (jsonError) {
-        console.error('Error parsing JSON:', jsonError);
+      } catch (textError) {
+        console.error('レスポンステキスト取得エラー:', textError);
         errorMessage = `サーバーエラー: ${response.status} ${response.statusText}`;
       }
       throw new Error(errorMessage);
     }
     
+    // 正常なレスポンスの場合はJSONとしてパース
     const data = await response.json();
+    console.log('APIレスポンスデータ:', data);
     showResult(data);
     
   } catch (error) {
+    console.error('APIリクエストエラー:', error);
     hideLoading();
     showError(error.message);
-    console.error('API error:', error);
   }
 });
 
 // YouTube動画のスクリーンショット取得
-youtubeBtn.addEventListener('click', async () => {
+youtubeBtn.addEventListener('click', async (event) => {
+  // デフォルトのフォーム送信動作を防止
+  event.preventDefault();
+  console.log('YouTube動画スクリーンショット取得ボタンがクリックされました');
+  
   const url = youtubeUrlInput.value.trim();
   const timestamp = timestampInput.value.trim();
+  console.log('YouTube URL:', url, 'タイムスタンプ:', timestamp);
   
   if (!url) {
     showError('YouTube URLを入力してください');
@@ -181,7 +215,12 @@ youtubeBtn.addEventListener('click', async () => {
   showLoading('YouTube動画のスクリーンショットを取得中...');
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/screenshot`, {
+    // リクエスト先のURLをログに出力
+    const requestUrl = `${API_BASE_URL}/api/screenshot`;
+    console.log('APIリクエスト先:', requestUrl);
+    console.log('リクエストボディ:', { url, timestamp });
+    
+    const response = await fetch(requestUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -190,34 +229,58 @@ youtubeBtn.addEventListener('click', async () => {
       body: JSON.stringify({ url, timestamp })
     });
     
+    console.log('APIレスポンスステータス:', response.status);
+    
     if (!response.ok) {
       let errorMessage = 'スクリーンショットの取得に失敗しました';
       try {
-        const errorData = await response.json();
-        if (errorData && errorData.error) {
-          errorMessage = errorData.error;
+        // レスポンスの内容をログに出力（デバッグ用）
+        const responseText = await response.text();
+        console.error('エラーレスポンス本文:', responseText);
+        
+        // JSONとしてパース可能か試みる
+        try {
+          const errorData = JSON.parse(responseText);
+          if (errorData && errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (parseError) {
+          console.error('JSONパースエラー:', parseError);
+          // HTMLが返ってきているかどうかをチェック
+          if (responseText.includes('<!DOCTYPE') || responseText.includes('<html>')) {
+            errorMessage = 'サーバーがHTMLを返しました。APIエンドポイントの設定を確認してください。';
+          } else {
+            errorMessage = `サーバーエラー: ${response.status} ${response.statusText}`;
+          }
         }
-      } catch (jsonError) {
-        console.error('Error parsing JSON:', jsonError);
+      } catch (textError) {
+        console.error('レスポンステキスト取得エラー:', textError);
         errorMessage = `サーバーエラー: ${response.status} ${response.statusText}`;
       }
       throw new Error(errorMessage);
     }
     
+    // 正常なレスポンスの場合はJSONとしてパース
     const data = await response.json();
+    console.log('APIレスポンスデータ:', data);
     showResult(data);
     
   } catch (error) {
+    console.error('APIリクエストエラー:', error);
     hideLoading();
     showError(error.message);
-    console.error('API error:', error);
   }
 });
 
 // YouTube Shortsのスクリーンショット取得
-shortsBtn.addEventListener('click', async () => {
+shortsBtn.addEventListener('click', async (event) => {
+  // デフォルトのフォーム送信動作を防止
+  event.preventDefault();
+  console.log('YouTube Shortsスクリーンショット取得ボタンがクリックされました');
+  
   const url = shortsUrlInput.value.trim();
   const timestamp = shortsTimestampInput.value.trim();
+  console.log('Shorts URL:', url, 'タイムスタンプ:', timestamp);
   
   if (!url) {
     showError('YouTube Shorts URLを入力してください');
@@ -232,7 +295,12 @@ shortsBtn.addEventListener('click', async () => {
   showLoading('YouTube Shortsのスクリーンショットを取得中...');
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/screenshot`, {
+    // リクエスト先のURLをログに出力
+    const requestUrl = `${API_BASE_URL}/api/screenshot`;
+    console.log('APIリクエスト先:', requestUrl);
+    console.log('リクエストボディ:', { url, timestamp });
+    
+    const response = await fetch(requestUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -241,106 +309,154 @@ shortsBtn.addEventListener('click', async () => {
       body: JSON.stringify({ url, timestamp })
     });
     
+    console.log('APIレスポンスステータス:', response.status);
+    
     if (!response.ok) {
       let errorMessage = 'スクリーンショットの取得に失敗しました';
       try {
-        const errorData = await response.json();
-        if (errorData && errorData.error) {
-          errorMessage = errorData.error;
+        // レスポンスの内容をログに出力（デバッグ用）
+        const responseText = await response.text();
+        console.error('エラーレスポンス本文:', responseText);
+        
+        // JSONとしてパース可能か試みる
+        try {
+          const errorData = JSON.parse(responseText);
+          if (errorData && errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (parseError) {
+          console.error('JSONパースエラー:', parseError);
+          // HTMLが返ってきているかどうかをチェック
+          if (responseText.includes('<!DOCTYPE') || responseText.includes('<html>')) {
+            errorMessage = 'サーバーがHTMLを返しました。APIエンドポイントの設定を確認してください。';
+          } else {
+            errorMessage = `サーバーエラー: ${response.status} ${response.statusText}`;
+          }
         }
-      } catch (jsonError) {
-        console.error('Error parsing JSON:', jsonError);
+      } catch (textError) {
+        console.error('レスポンステキスト取得エラー:', textError);
         errorMessage = `サーバーエラー: ${response.status} ${response.statusText}`;
       }
       throw new Error(errorMessage);
     }
     
+    // 正常なレスポンスの場合はJSONとしてパース
     const data = await response.json();
+    console.log('APIレスポンスデータ:', data);
     showResult(data);
     
   } catch (error) {
+    console.error('APIリクエストエラー:', error);
     hideLoading();
     showError(error.message);
-    console.error('API error:', error);
   }
 });
 
 // バッチキャプチャの実行
-batchBtn.addEventListener('click', async () => {
-  const videoIdOrUrl = batchVideoIdInput.value.trim();
-  const startSec = startSecInput.value.trim();
-  const endSec = endSecInput.value.trim();
-  const maxConcurrency = maxConcurrencyInput.value.trim();
+batchBtn.addEventListener('click', async (event) => {
+  // デフォルトのフォーム送信動作を防止
+  event.preventDefault();
+  console.log('バッチキャプチャ実行ボタンがクリックされました');
   
-  let videoId = videoIdOrUrl;
+  const videoId = batchVideoIdInput.value.trim();
+  const startSec = parseInt(startSecInput.value.trim() || '0');
+  const endSec = parseInt(endSecInput.value.trim() || '5');
+  const maxConcurrency = parseInt(maxConcurrencyInput.value.trim() || '5');
   
-  // URLが入力された場合、ビデオIDを抽出
-  if (videoIdOrUrl.includes('youtube.com') || videoIdOrUrl.includes('youtu.be')) {
-    if (isShortsUrl(videoIdOrUrl)) {
-      videoId = extractShortsVideoId(videoIdOrUrl);
-    } else if (isYoutubeUrl(videoIdOrUrl)) {
-      videoId = extractYoutubeVideoId(videoIdOrUrl);
-    }
-    
-    if (!videoId) {
-      showError('入力されたURLから有効なYouTube動画IDを抽出できませんでした');
-      return;
-    }
-  }
+  console.log('バッチキャプチャパラメータ:', { videoId, startSec, endSec, maxConcurrency });
   
   if (!videoId) {
     showError('YouTube Shorts IDまたはURLを入力してください');
     return;
   }
   
-  if (isNaN(startSec) || isNaN(endSec) || parseInt(startSec) < 0 || parseInt(endSec) <= parseInt(startSec)) {
-    showError('有効な秒数範囲を指定してください（開始は0以上、終了は開始より大きい値）');
+  if (isNaN(startSec) || isNaN(endSec) || startSec < 0 || endSec <= startSec) {
+    showError('有効な秒数範囲を指定してください');
     return;
   }
   
-  if (parseInt(endSec) - parseInt(startSec) > 60) {
-    showError('連続キャプチャは最大60秒範囲に制限されています');
+  if (endSec - startSec > 60) {
+    showError('秒数範囲は最大60秒までです');
     return;
   }
   
-  showLoading(`YouTube Shortsの連続キャプチャを実行中... (${startSec}秒から${endSec}秒まで)`);
+  showLoading('バッチキャプチャ実行中...');
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/screenshot/batch`, {
+    // ビデオIDの抽出（URLが入力された場合）
+    let finalVideoId = videoId;
+    if (videoId.includes('youtube.com')) {
+      // URL形式をチェック
+      if (isShortsUrl(videoId)) {
+        finalVideoId = extractShortsVideoId(videoId);
+      } else if (isYoutubeUrl(videoId)) {
+        finalVideoId = extractYoutubeVideoId(videoId);
+      }
+      
+      if (!finalVideoId) {
+        throw new Error('無効なYouTube URLです');
+      }
+    }
+    
+    // リクエスト先のURLをログに出力
+    const requestUrl = `${API_BASE_URL}/api/screenshot/batch`;
+    console.log('バッチAPIリクエスト先:', requestUrl);
+    console.log('リクエストボディ:', { videoId: finalVideoId, startSec, endSec, maxConcurrency });
+    
+    const response = await fetch(requestUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Origin': window.location.origin
       },
       body: JSON.stringify({ 
-        videoId, 
-        startSec: parseInt(startSec), 
-        endSec: parseInt(endSec),
-        maxConcurrency: parseInt(maxConcurrency) || 5
+        videoId: finalVideoId,
+        startSec, 
+        endSec,
+        maxConcurrency
       })
     });
+    
+    console.log('APIレスポンスステータス:', response.status);
     
     if (!response.ok) {
       let errorMessage = 'バッチキャプチャに失敗しました';
       try {
-        const errorData = await response.json();
-        if (errorData && errorData.error) {
-          errorMessage = errorData.error;
+        // レスポンスの内容をログに出力（デバッグ用）
+        const responseText = await response.text();
+        console.error('エラーレスポンス本文:', responseText);
+        
+        // JSONとしてパース可能か試みる
+        try {
+          const errorData = JSON.parse(responseText);
+          if (errorData && errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (parseError) {
+          console.error('JSONパースエラー:', parseError);
+          // HTMLが返ってきているかどうかをチェック
+          if (responseText.includes('<!DOCTYPE') || responseText.includes('<html>')) {
+            errorMessage = 'サーバーがHTMLを返しました。APIエンドポイントの設定を確認してください。';
+          } else {
+            errorMessage = `サーバーエラー: ${response.status} ${response.statusText}`;
+          }
         }
-      } catch (jsonError) {
-        console.error('Error parsing JSON:', jsonError);
+      } catch (textError) {
+        console.error('レスポンステキスト取得エラー:', textError);
         errorMessage = `サーバーエラー: ${response.status} ${response.statusText}`;
       }
       throw new Error(errorMessage);
     }
     
+    // 正常なレスポンスの場合はJSONとしてパース
     const data = await response.json();
+    console.log('バッチAPIレスポンスデータ:', data);
     showBatchResult(data);
     
   } catch (error) {
+    console.error('バッチAPIリクエストエラー:', error);
     hideLoading();
     showError(error.message);
-    console.error('API error:', error);
   }
 });
 
