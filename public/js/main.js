@@ -2,7 +2,9 @@
 const debugMode = false;
 
 // API基本URL（環境に応じて異なる）
-const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+const API_BASE_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:3000' 
+  : 'https://web-screenshot-1015153191846.asia-northeast1.run.app';
 
 // デバッグ情報を出力
 console.log('環境情報:', {
