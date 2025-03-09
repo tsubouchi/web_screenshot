@@ -363,3 +363,144 @@
 - **クライアントキャッシュ**: 適切なキャッシュ戦略
 - **リソース管理**: Puppeteerインスタンスの効率的管理
 - **Firebase最適化**: データ構造とクエリの最適化 
+
+## デプロイアーキテクチャ
+
+本サービスは以下のコンポーネントを使用して本番環境にデプロイします：
+
+```
+[ユーザー] --> [Firebase Hosting] --> [HTML/CSS/JS]
+                     |
+                     v
+              [Google Cloud Run] --> [Express サーバー]
+                     |
+                     v
+              [Firebase Services]
+              - Realtime Database
+              - Storage
+```
+
+### 1. Firebase Hosting (フロントエンド)
+
+- **役割**: 静的ファイルのホスティング、APIリクエストのルーティング
+- **構成ファイル**: `firebase.json`
+- **主要設定**:
+  - 公開ディレクトリ: `public/`
+  - Cloud Runへのリクエスト転送設定
+  - キャッシュ設定
+
+### 2. Google Cloud Run (バックエンド)
+
+- **役割**: スクリーンショットサービスの実行環境
+- **構成ファイル**: `Dockerfile`
+- **主要設定**:
+  - コンテナイメージ: Node.js 18ベース
+  - Puppeteerの依存関係インストール設定
+  - 適切なメモリ割り当て
+  - スケーリング設定
+
+### 3. Firebase設定ファイル
+
+#### firebase.json
+```json
+{
+  "database": {
+    "rules": "database.rules.json"
+  },
+  "hosting": {
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "run": {
+          "serviceId": "web-screenshot",
+          "region": "asia-northeast1"
+        }
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
+```
+
+#### database.rules.json
+```json
+{
+  "rules": {
+    ".read": true,
+    ".write": true
+  }
+}
+```
+
+#### storage.rules
+```
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      // 開発環境なので、すべてのアクセスを許可する
+      allow read, write;
+    }
+  }
+}
+```
+
+### 4. デプロイ手順
+
+#### Firebase Hostingデプロイ
+```bash
+# Firebase CLIをインストール
+npm install -g firebase-tools
+
+# ログイン
+firebase login
+
+# プロジェクト初期化（初回のみ）
+firebase init
+
+# デプロイ
+firebase deploy --only hosting
+```
+
+#### Google Cloud Runデプロイ
+```bash
+# Google Cloud SDKをインストール・設定
+
+# サービスをデプロイ
+gcloud run deploy web-screenshot \
+  --source . \
+  --platform managed \
+  --region asia-northeast1 \
+  --allow-unauthenticated \
+  --project=YOUR_PROJECT_ID
+```
+
+### 5. デプロイ時の注意点
+
+- **Firebase Storage Bucket名**: バケット名は`PROJECT_ID.firebasestorage.app`形式で設定
+- **Firebase Database URL**: トレイリングスラッシュ（/）を含める
+- **Cloud RunからFirebaseへの認証**: サービスアカウント権限の設定
+- **環境変数**: 本番環境用の環境変数をCloud Run設定に追加
+- **APIルーティング**: Firebase HostingからCloud Runへの正しいルーティング設定
+
+### 6. APIアクセスエラーのトラブルシューティング
+
+- **Cloud Run Admin API**: APIが有効化されていることを確認
+- **サービス名・リージョン**: firebase.jsonの設定と実際のデプロイ先が一致しているか確認
+- **CORS設定**: 適切なCORS設定がされているか確認
+- **権限設定**: 必要なサービスアカウント権限が付与されているか確認
+
+### 7. 追加必要なFirebase設定
+
+- **Firebase Authentication**: 必要に応じて認証設定を追加
+- **セキュリティルール**: 本番環境ではより厳格なルールを設定
+- **クロスリージョン設定**: 必要に応じてマルチリージョン設定を検討
