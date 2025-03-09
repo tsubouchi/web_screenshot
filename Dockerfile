@@ -17,8 +17,8 @@ WORKDIR /app
 # package.jsonとpackage-lock.jsonのコピー
 COPY package*.json ./
 
-# 依存パッケージのインストール（非推奨の--productionフラグを--omit=devに変更）
-RUN npm install --omit=dev
+# 依存パッケージのインストール
+RUN npm install
 
 # ソースコードのコピー
 COPY . .
@@ -28,15 +28,20 @@ RUN mkdir -p data/uploads
 
 # 環境変数を設定
 ENV PORT=8080
+ENV HOST=0.0.0.0
 ENV NODE_ENV=production
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
+ENV TIMEOUT=300000
 
 # アプリケーションを実行するポートを公開
 EXPOSE 8080
 
-# ヘルスチェックのタイムアウトを設定
-ENV TIMEOUT=300000
+# ヘルスチェック用の起動準備確認スクリプトを作成
+RUN echo '#!/bin/sh\n\
+echo "Container starting..."\n\
+node src/index.js\n\
+' > /app/startup.sh && chmod +x /app/startup.sh
 
 # アプリケーションを起動
-CMD ["node", "src/index.js"] 
+CMD ["/app/startup.sh"] 

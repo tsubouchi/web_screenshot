@@ -24,10 +24,14 @@ const PORT = process.env.PORT || 3000;
 console.log('アプリケーション設定:', {
   NODE_ENV: process.env.NODE_ENV,
   PORT: PORT,
+  HOST: process.env.HOST || '0.0.0.0',
   CLOUD_RUN_URL: process.env.CLOUD_RUN_URL,
   FIREBASE_DATABASE_URL: process.env.FIREBASE_DATABASE_URL,
   FIREBASE_STORAGE_BUCKET: process.env.FIREBASE_STORAGE_BUCKET
 });
+
+// 起動時のメッセージ
+console.log('======== アプリケーション起動中 ========');
 
 // CORS設定を改善
 const corsOptions = {
@@ -104,8 +108,26 @@ app.use((err, req, res, next) => {
 });
 
 // サーバー起動
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`サーバーが起動しました: http://0.0.0.0:${PORT}`);
+const server = app.listen(PORT, process.env.HOST || '0.0.0.0', () => {
+  console.log(`サーバーが起動しました: http://${process.env.HOST || '0.0.0.0'}:${PORT}`);
   console.log(`環境: ${process.env.NODE_ENV || 'development'}`);
   console.log('コンテナが正常に起動し、リクエストを受け付ける準備ができました');
+  console.log('======== 起動完了 ========');
+});
+
+// プロセス終了時のグレースフルシャットダウン
+process.on('SIGTERM', () => {
+  console.log('SIGTERMシグナルを受信しました。シャットダウンを開始します...');
+  server.close(() => {
+    console.log('サーバーを正常に終了しました。');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINTシグナルを受信しました。シャットダウンを開始します...');
+  server.close(() => {
+    console.log('サーバーを正常に終了しました。');
+    process.exit(0);
+  });
 }); 
