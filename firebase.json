@@ -12,10 +12,7 @@
     "rewrites": [
       {
         "source": "/api/**",
-        "run": {
-          "serviceId": "web-screenshot-1015153191846",
-          "region": "asia-northeast1"
-        }
+        "destination": "https://web-screenshot-1015153191846.asia-northeast1.run.app/api/**"
       },
       {
         "source": "**",
