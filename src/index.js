@@ -64,6 +64,20 @@ app.use('/data/uploads', express.static(uploadsDir));
 // ルーターの設定
 app.use('/api/screenshot', screenshotRouter);
 
+// 環境設定を公開するエンドポイント（フロントエンド用）
+app.get('/api/config', (req, res) => {
+  // フロントエンドに公開しても安全な設定のみを含める
+  const publicConfig = {
+    API_BASE_URL: process.env.NODE_ENV === 'development' 
+      ? `http://localhost:${PORT}` 
+      : process.env.CLOUD_RUN_URL || 'https://web-screenshot-1015153191846.asia-northeast1.run.app',
+    FIREBASE_HOSTING_URL: process.env.FIREBASE_HOSTING_URL || 'https://web-screenshot-demo-c3d64.web.app',
+    NODE_ENV: process.env.NODE_ENV || 'development'
+  };
+  
+  res.json(publicConfig);
+});
+
 // メインルート
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public', 'index.html'));
