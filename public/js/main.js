@@ -1,8 +1,17 @@
 // デバッグモード
 const debugMode = false;
 
-// API設定
-const API_BASE_URL = 'https://web-screenshot-1015153191846.asia-northeast1.run.app';
+// API基本URL（環境に応じて異なる）
+const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+
+// デバッグ情報を出力
+console.log('環境情報:', {
+  hostname: window.location.hostname,
+  protocol: window.location.protocol,
+  pathname: window.location.pathname,
+  API_BASE_URL: API_BASE_URL,
+  完全なURL: `${API_BASE_URL}/api/screenshot`
+});
 
 // DOM要素の取得
 const tabButtons = document.querySelectorAll('.tab-btn');
@@ -140,16 +149,21 @@ screenshotBtn.addEventListener('click', async (event) => {
     console.log('APIリクエスト先:', requestUrl);
     console.log('リクエストボディ:', { url });
     
+    // ヘッダー情報をログに出力
+    const headers = {
+      'Content-Type': 'application/json',
+      'Origin': window.location.origin
+    };
+    console.log('リクエストヘッダー:', headers);
+    
     const response = await fetch(requestUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Origin': window.location.origin
-      },
+      headers: headers,
       body: JSON.stringify({ url })
     });
     
     console.log('APIレスポンスステータス:', response.status);
+    console.log('APIレスポンスヘッダー:', Object.fromEntries([...response.headers]));
     
     if (!response.ok) {
       let errorMessage = 'スクリーンショットの取得に失敗しました';
@@ -157,6 +171,10 @@ screenshotBtn.addEventListener('click', async (event) => {
         // レスポンスの内容をログに出力（デバッグ用）
         const responseText = await response.text();
         console.error('エラーレスポンス本文:', responseText);
+        
+        // レスポンスの先頭部分を確認してエラーメッセージに追加
+        const previewText = responseText.substring(0, 200);
+        console.error('エラーレスポンス先頭:', previewText);
         
         // JSONとしてパース可能か試みる
         try {
@@ -168,7 +186,12 @@ screenshotBtn.addEventListener('click', async (event) => {
           console.error('JSONパースエラー:', parseError);
           // HTMLが返ってきているかどうかをチェック
           if (responseText.includes('<!DOCTYPE') || responseText.includes('<html>')) {
-            errorMessage = 'サーバーがHTMLを返しました。APIエンドポイントの設定を確認してください。';
+            errorMessage = `サーバーがHTMLを返しました: "${previewText.replace(/<[^>]*>/g, '')}"。APIエンドポイントの設定を確認してください。`;
+            console.error('HTMLレスポンスを検出:', { 
+              status: response.status, 
+              contentType: response.headers.get('content-type'),
+              preview: previewText
+            });
           } else {
             errorMessage = `サーバーエラー: ${response.status} ${response.statusText}`;
           }
@@ -188,7 +211,15 @@ screenshotBtn.addEventListener('click', async (event) => {
   } catch (error) {
     console.error('APIリクエストエラー:', error);
     hideLoading();
-    showError(error.message);
+    
+    // エラー表示を強化
+    const errorDiv = document.getElementById('error-message');
+    if (errorDiv) {
+      errorDiv.innerHTML = `<strong>エラー:</strong> ${error.message}<br><small>詳細はブラウザのコンソールを確認してください</small>`;
+      errorDiv.classList.remove('hidden');
+    } else {
+      showError(`${error.message} (詳細はコンソールを確認してください)`);
+    }
   }
 });
 
@@ -199,11 +230,10 @@ youtubeBtn.addEventListener('click', async (event) => {
   console.log('YouTube動画スクリーンショット取得ボタンがクリックされました');
   
   const url = youtubeUrlInput.value.trim();
-  const timestamp = timestampInput.value.trim();
-  console.log('YouTube URL:', url, 'タイムスタンプ:', timestamp);
+  console.log('入力YouTube URL:', url);
   
   if (!url) {
-    showError('YouTube URLを入力してください');
+    showError('YouTubeのURLを入力してください');
     return;
   }
   
@@ -212,31 +242,48 @@ youtubeBtn.addEventListener('click', async (event) => {
     return;
   }
   
+  const videoId = extractYoutubeVideoId(url);
+  console.log('抽出されたYouTubeビデオID:', videoId);
+  
+  if (!videoId) {
+    showError('YouTubeビデオIDを抽出できませんでした');
+    return;
+  }
+  
   showLoading('YouTube動画のスクリーンショットを取得中...');
   
   try {
     // リクエスト先のURLをログに出力
-    const requestUrl = `${API_BASE_URL}/api/screenshot`;
+    const requestUrl = `${API_BASE_URL}/api/youtube-screenshot`;
     console.log('APIリクエスト先:', requestUrl);
-    console.log('リクエストボディ:', { url, timestamp });
+    console.log('リクエストボディ:', { video_id: videoId });
+    
+    // ヘッダー情報をログに出力
+    const headers = {
+      'Content-Type': 'application/json',
+      'Origin': window.location.origin
+    };
+    console.log('リクエストヘッダー:', headers);
     
     const response = await fetch(requestUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Origin': window.location.origin
-      },
-      body: JSON.stringify({ url, timestamp })
+      headers: headers,
+      body: JSON.stringify({ video_id: videoId })
     });
     
     console.log('APIレスポンスステータス:', response.status);
+    console.log('APIレスポンスヘッダー:', Object.fromEntries([...response.headers]));
     
     if (!response.ok) {
-      let errorMessage = 'スクリーンショットの取得に失敗しました';
+      let errorMessage = 'YouTube動画のスクリーンショット取得に失敗しました';
       try {
         // レスポンスの内容をログに出力（デバッグ用）
         const responseText = await response.text();
         console.error('エラーレスポンス本文:', responseText);
+        
+        // レスポンスの先頭部分を確認してエラーメッセージに追加
+        const previewText = responseText.substring(0, 200);
+        console.error('エラーレスポンス先頭:', previewText);
         
         // JSONとしてパース可能か試みる
         try {
@@ -248,7 +295,12 @@ youtubeBtn.addEventListener('click', async (event) => {
           console.error('JSONパースエラー:', parseError);
           // HTMLが返ってきているかどうかをチェック
           if (responseText.includes('<!DOCTYPE') || responseText.includes('<html>')) {
-            errorMessage = 'サーバーがHTMLを返しました。APIエンドポイントの設定を確認してください。';
+            errorMessage = `サーバーがHTMLを返しました: "${previewText.replace(/<[^>]*>/g, '')}"。APIエンドポイントの設定を確認してください。`;
+            console.error('HTMLレスポンスを検出:', { 
+              status: response.status, 
+              contentType: response.headers.get('content-type'),
+              preview: previewText
+            });
           } else {
             errorMessage = `サーバーエラー: ${response.status} ${response.statusText}`;
           }
@@ -260,7 +312,6 @@ youtubeBtn.addEventListener('click', async (event) => {
       throw new Error(errorMessage);
     }
     
-    // 正常なレスポンスの場合はJSONとしてパース
     const data = await response.json();
     console.log('APIレスポンスデータ:', data);
     showResult(data);
@@ -268,7 +319,15 @@ youtubeBtn.addEventListener('click', async (event) => {
   } catch (error) {
     console.error('APIリクエストエラー:', error);
     hideLoading();
-    showError(error.message);
+    
+    // エラー表示を強化
+    const errorDiv = document.getElementById('error-message');
+    if (errorDiv) {
+      errorDiv.innerHTML = `<strong>エラー:</strong> ${error.message}<br><small>詳細はブラウザのコンソールを確認してください</small>`;
+      errorDiv.classList.remove('hidden');
+    } else {
+      showError(`${error.message} (詳細はコンソールを確認してください)`);
+    }
   }
 });
 
@@ -279,11 +338,10 @@ shortsBtn.addEventListener('click', async (event) => {
   console.log('YouTube Shortsスクリーンショット取得ボタンがクリックされました');
   
   const url = shortsUrlInput.value.trim();
-  const timestamp = shortsTimestampInput.value.trim();
-  console.log('Shorts URL:', url, 'タイムスタンプ:', timestamp);
+  console.log('入力Shorts URL:', url);
   
   if (!url) {
-    showError('YouTube Shorts URLを入力してください');
+    showError('YouTube ShortsのURLを入力してください');
     return;
   }
   
@@ -292,31 +350,48 @@ shortsBtn.addEventListener('click', async (event) => {
     return;
   }
   
+  const videoId = extractShortsVideoId(url);
+  console.log('抽出されたShortsビデオID:', videoId);
+  
+  if (!videoId) {
+    showError('ShortsビデオIDを抽出できませんでした');
+    return;
+  }
+  
   showLoading('YouTube Shortsのスクリーンショットを取得中...');
   
   try {
     // リクエスト先のURLをログに出力
-    const requestUrl = `${API_BASE_URL}/api/screenshot`;
+    const requestUrl = `${API_BASE_URL}/api/shorts-screenshot`;
     console.log('APIリクエスト先:', requestUrl);
-    console.log('リクエストボディ:', { url, timestamp });
+    console.log('リクエストボディ:', { video_id: videoId });
+    
+    // ヘッダー情報をログに出力
+    const headers = {
+      'Content-Type': 'application/json',
+      'Origin': window.location.origin
+    };
+    console.log('リクエストヘッダー:', headers);
     
     const response = await fetch(requestUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Origin': window.location.origin
-      },
-      body: JSON.stringify({ url, timestamp })
+      headers: headers,
+      body: JSON.stringify({ video_id: videoId })
     });
     
     console.log('APIレスポンスステータス:', response.status);
+    console.log('APIレスポンスヘッダー:', Object.fromEntries([...response.headers]));
     
     if (!response.ok) {
-      let errorMessage = 'スクリーンショットの取得に失敗しました';
+      let errorMessage = 'YouTube Shortsのスクリーンショット取得に失敗しました';
       try {
         // レスポンスの内容をログに出力（デバッグ用）
         const responseText = await response.text();
         console.error('エラーレスポンス本文:', responseText);
+        
+        // レスポンスの先頭部分を確認してエラーメッセージに追加
+        const previewText = responseText.substring(0, 200);
+        console.error('エラーレスポンス先頭:', previewText);
         
         // JSONとしてパース可能か試みる
         try {
@@ -328,7 +403,12 @@ shortsBtn.addEventListener('click', async (event) => {
           console.error('JSONパースエラー:', parseError);
           // HTMLが返ってきているかどうかをチェック
           if (responseText.includes('<!DOCTYPE') || responseText.includes('<html>')) {
-            errorMessage = 'サーバーがHTMLを返しました。APIエンドポイントの設定を確認してください。';
+            errorMessage = `サーバーがHTMLを返しました: "${previewText.replace(/<[^>]*>/g, '')}"。APIエンドポイントの設定を確認してください。`;
+            console.error('HTMLレスポンスを検出:', { 
+              status: response.status, 
+              contentType: response.headers.get('content-type'),
+              preview: previewText
+            });
           } else {
             errorMessage = `サーバーエラー: ${response.status} ${response.statusText}`;
           }
@@ -340,7 +420,6 @@ shortsBtn.addEventListener('click', async (event) => {
       throw new Error(errorMessage);
     }
     
-    // 正常なレスポンスの場合はJSONとしてパース
     const data = await response.json();
     console.log('APIレスポンスデータ:', data);
     showResult(data);
@@ -348,7 +427,15 @@ shortsBtn.addEventListener('click', async (event) => {
   } catch (error) {
     console.error('APIリクエストエラー:', error);
     hideLoading();
-    showError(error.message);
+    
+    // エラー表示を強化
+    const errorDiv = document.getElementById('error-message');
+    if (errorDiv) {
+      errorDiv.innerHTML = `<strong>エラー:</strong> ${error.message}<br><small>詳細はブラウザのコンソールを確認してください</small>`;
+      errorDiv.classList.remove('hidden');
+    } else {
+      showError(`${error.message} (詳細はコンソールを確認してください)`);
+    }
   }
 });
 
