@@ -1,4 +1,7 @@
 {
+  "database": {
+    "rules": "database.rules.json"
+  },
   "hosting": {
     "public": "public",
     "ignore": [
@@ -11,7 +14,8 @@
         "source": "/api/**",
         "run": {
           "serviceId": "web-screenshot",
-          "region": "asia-northeast1"
+          "region": "asia-northeast1",
+          "projectId": "global-brook-453206-b9"
         }
       },
       {
