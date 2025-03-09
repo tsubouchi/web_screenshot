@@ -5,7 +5,7 @@ const debugMode = false;
 let config = {
   API_BASE_URL: window.location.hostname === 'localhost' 
     ? 'http://localhost:3000' 
-    : 'https://web-screenshot-1015153191846.asia-northeast1.run.app',
+    : 'https://web-screenshot-414448831707.asia-northeast1.run.app',
   NODE_ENV: 'production'
 };
 
