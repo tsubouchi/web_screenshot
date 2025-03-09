@@ -17,8 +17,8 @@ WORKDIR /app
 # package.jsonとpackage-lock.jsonのコピー
 COPY package*.json ./
 
-# 依存パッケージのインストール
-RUN npm install --production
+# 依存パッケージのインストール（非推奨の--productionフラグを--omit=devに変更）
+RUN npm install --omit=dev
 
 # ソースコードのコピー
 COPY . .
