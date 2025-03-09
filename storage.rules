@@ -1,0 +1,9 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      // 開発環境なので、すべてのアクセスを許可する
+      allow read, write;
+    }
+  }
+} 
