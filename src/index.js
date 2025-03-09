@@ -20,8 +20,30 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// CORS設定を改善
+const corsOptions = {
+  origin: [
+    'https://web-screenshot-demo-c3d64.web.app',
+    'https://web-screenshot-demo-c3d64.firebaseapp.com',
+    process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : null
+  ].filter(Boolean),
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Origin', 'Accept'],
+  credentials: true,
+  maxAge: 86400 // 24時間
+};
+
+// すべてのリクエストについてCORSを許可する（デバッグ用）
+if (process.env.NODE_ENV === 'development') {
+  console.log('開発モード: すべてのCORSリクエストを許可します');
+  app.use(cors());
+} else {
+  // 本番環境では特定のオリジンのみ許可
+  console.log('本番モード: 特定のオリジンのみCORSを許可します');
+  app.use(cors(corsOptions));
+}
+
 // ミドルウェアの設定
-app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

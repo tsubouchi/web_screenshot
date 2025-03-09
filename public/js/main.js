@@ -1,6 +1,9 @@
 // デバッグモード
 const debugMode = false;
 
+// API設定
+const API_BASE_URL = 'https://web-screenshot-1015153191846.asia-northeast1.run.app';
+
 // DOM要素の取得
 const tabButtons = document.querySelectorAll('.tab-btn');
 const tabContents = document.querySelectorAll('.tab-content');
@@ -127,17 +130,27 @@ screenshotBtn.addEventListener('click', async () => {
   showLoading('スクリーンショットを取得中...');
   
   try {
-    const response = await fetch('/api/screenshot', {
+    const response = await fetch(`${API_BASE_URL}/api/screenshot`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Origin': window.location.origin
       },
       body: JSON.stringify({ url })
     });
     
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'スクリーンショットの取得に失敗しました');
+      let errorMessage = 'スクリーンショットの取得に失敗しました';
+      try {
+        const errorData = await response.json();
+        if (errorData && errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch (jsonError) {
+        console.error('Error parsing JSON:', jsonError);
+        errorMessage = `サーバーエラー: ${response.status} ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
     
     const data = await response.json();
@@ -146,6 +159,7 @@ screenshotBtn.addEventListener('click', async () => {
   } catch (error) {
     hideLoading();
     showError(error.message);
+    console.error('API error:', error);
   }
 });
 
@@ -167,17 +181,27 @@ youtubeBtn.addEventListener('click', async () => {
   showLoading('YouTube動画のスクリーンショットを取得中...');
   
   try {
-    const response = await fetch('/api/screenshot', {
+    const response = await fetch(`${API_BASE_URL}/api/screenshot`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Origin': window.location.origin
       },
       body: JSON.stringify({ url, timestamp })
     });
     
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'スクリーンショットの取得に失敗しました');
+      let errorMessage = 'スクリーンショットの取得に失敗しました';
+      try {
+        const errorData = await response.json();
+        if (errorData && errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch (jsonError) {
+        console.error('Error parsing JSON:', jsonError);
+        errorMessage = `サーバーエラー: ${response.status} ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
     
     const data = await response.json();
@@ -186,6 +210,7 @@ youtubeBtn.addEventListener('click', async () => {
   } catch (error) {
     hideLoading();
     showError(error.message);
+    console.error('API error:', error);
   }
 });
 
@@ -207,17 +232,27 @@ shortsBtn.addEventListener('click', async () => {
   showLoading('YouTube Shortsのスクリーンショットを取得中...');
   
   try {
-    const response = await fetch('/api/screenshot', {
+    const response = await fetch(`${API_BASE_URL}/api/screenshot`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Origin': window.location.origin
       },
       body: JSON.stringify({ url, timestamp })
     });
     
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'スクリーンショットの取得に失敗しました');
+      let errorMessage = 'スクリーンショットの取得に失敗しました';
+      try {
+        const errorData = await response.json();
+        if (errorData && errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch (jsonError) {
+        console.error('Error parsing JSON:', jsonError);
+        errorMessage = `サーバーエラー: ${response.status} ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
     
     const data = await response.json();
@@ -226,6 +261,7 @@ shortsBtn.addEventListener('click', async () => {
   } catch (error) {
     hideLoading();
     showError(error.message);
+    console.error('API error:', error);
   }
 });
 
@@ -270,10 +306,11 @@ batchBtn.addEventListener('click', async () => {
   showLoading(`YouTube Shortsの連続キャプチャを実行中... (${startSec}秒から${endSec}秒まで)`);
   
   try {
-    const response = await fetch('/api/screenshot/batch', {
+    const response = await fetch(`${API_BASE_URL}/api/screenshot/batch`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Origin': window.location.origin
       },
       body: JSON.stringify({ 
         videoId, 
@@ -284,8 +321,17 @@ batchBtn.addEventListener('click', async () => {
     });
     
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'バッチキャプチャに失敗しました');
+      let errorMessage = 'バッチキャプチャに失敗しました';
+      try {
+        const errorData = await response.json();
+        if (errorData && errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch (jsonError) {
+        console.error('Error parsing JSON:', jsonError);
+        errorMessage = `サーバーエラー: ${response.status} ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
     
     const data = await response.json();
@@ -294,6 +340,7 @@ batchBtn.addEventListener('click', async () => {
   } catch (error) {
     hideLoading();
     showError(error.message);
+    console.error('API error:', error);
   }
 });
 
@@ -307,7 +354,7 @@ downloadAllBtn.addEventListener('click', async () => {
   try {
     // バッチディレクトリ名を取得（パスから抽出）
     const batchDirName = currentBatchDirectory.split('/data/uploads/')[1] || currentBatchDirectory;
-    const zipUrl = `/api/screenshot/download-zip/${batchDirName}`;
+    const zipUrl = `${API_BASE_URL}/api/screenshot/download-zip/${batchDirName}`;
     
     window.open(zipUrl, '_blank');
   } catch (error) {
