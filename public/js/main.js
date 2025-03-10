@@ -499,16 +499,20 @@ async function takeScreenshot(url) {
 
       // 正常なレスポンスの処理
       const data = await response.json();
-      console.log('スクリーンショット API レスポンス:', data);
+      console.log('スクリーンショット API レスポンス (詳細):', JSON.stringify(data, null, 2));
       
-      if (!data.publicUrl) {
+      // データ構造に応じてURLを抽出（ネストされたデータ対応）
+      const imageUrl = extractImageUrl(data);
+      if (!imageUrl) {
         throw new Error('スクリーンショットの URL が見つかりません');
       }
       
+      console.log('抽出された画像URL:', imageUrl);
+      
       // 結果を表示
-      showScreenshot(data.publicUrl, url);
+      showScreenshot(imageUrl, url);
       updateUIState('success');
-      saveToHistory(url, data.publicUrl);
+      saveToHistory(url, imageUrl);
       
       return data;
     } catch (fetchError) {
@@ -553,7 +557,7 @@ async function takeYoutubeScreenshot(youtubeUrl, timestamp) {
       youtubeUrl: youtubeUrl,
       timestamp: timestamp,
       API_BASE_URL: config.API_BASE_URL,
-      完全URL: `${config.API_BASE_URL}/api/youtube/screenshot`
+      完全URL: `${config.API_BASE_URL}/api/screenshot` // 一般的なスクリーンショットエンドポイントを使用
     });
 
     // フェッチオプション設定
@@ -563,15 +567,19 @@ async function takeYoutubeScreenshot(youtubeUrl, timestamp) {
       cache: 'no-cache',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: youtubeUrl, timestamp: timestamp })
+      body: JSON.stringify({ 
+        url: youtubeUrl, 
+        timestamp: timestamp,
+        type: 'youtube' // タイプを明示的に指定
+      })
     };
     
     // デバッグログ
-    console.log('YouTube API呼び出し開始:', `${config.API_BASE_URL}/api/youtube/screenshot`, fetchOptions);
+    console.log('YouTube API呼び出し開始:', `${config.API_BASE_URL}/api/screenshot`, fetchOptions);
     
     try {
-      // APIリクエスト実行
-      const response = await fetch(`${config.API_BASE_URL}/api/youtube/screenshot`, fetchOptions);
+      // APIリクエスト実行（通常のスクリーンショットエンドポイントを使用）
+      const response = await fetch(`${config.API_BASE_URL}/api/screenshot`, fetchOptions);
       
       // レスポンスチェック
       if (!response.ok) {
@@ -595,16 +603,20 @@ async function takeYoutubeScreenshot(youtubeUrl, timestamp) {
 
       // 正常なレスポンスの処理
       const data = await response.json();
-      console.log('YouTube スクリーンショット API レスポンス:', data);
+      console.log('YouTube スクリーンショット API レスポンス (詳細):', JSON.stringify(data, null, 2));
       
-      if (!data.publicUrl) {
+      // データ構造に応じてURLを抽出（ネストされたデータ対応）
+      const imageUrl = extractImageUrl(data);
+      if (!imageUrl) {
         throw new Error('スクリーンショットの URL が見つかりません');
       }
       
+      console.log('抽出された画像URL:', imageUrl);
+      
       // 結果を表示
-      showScreenshot(data.publicUrl, youtubeUrl);
+      showScreenshot(imageUrl, youtubeUrl);
       updateUIState('success');
-      saveToHistory(youtubeUrl, data.publicUrl);
+      saveToHistory(youtubeUrl, imageUrl);
       
       return data;
     } catch (fetchError) {
@@ -647,7 +659,7 @@ async function takeShortsScreenshot(shortsUrl, timestamp) {
       shortsUrl: shortsUrl,
       timestamp: timestamp,
       API_BASE_URL: config.API_BASE_URL,
-      完全URL: `${config.API_BASE_URL}/api/youtube/screenshot` // ShortsもYouTubeエンドポイントを使用
+      完全URL: `${config.API_BASE_URL}/api/screenshot` // 一般的なスクリーンショットエンドポイントを使用
     });
 
     // フェッチオプション設定
@@ -657,15 +669,19 @@ async function takeShortsScreenshot(shortsUrl, timestamp) {
       cache: 'no-cache',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: shortsUrl, timestamp: timestamp })
+      body: JSON.stringify({ 
+        url: shortsUrl, 
+        timestamp: timestamp,
+        type: 'shorts' // タイプを明示的に指定
+      })
     };
     
     // デバッグログ
-    console.log('Shorts API呼び出し開始:', `${config.API_BASE_URL}/api/youtube/screenshot`, fetchOptions);
+    console.log('Shorts API呼び出し開始:', `${config.API_BASE_URL}/api/screenshot`, fetchOptions);
     
     try {
-      // APIリクエスト実行 - ShortsもYouTubeエンドポイントを使用
-      const response = await fetch(`${config.API_BASE_URL}/api/youtube/screenshot`, fetchOptions);
+      // APIリクエスト実行 - 一般的なスクリーンショットエンドポイントを使用
+      const response = await fetch(`${config.API_BASE_URL}/api/screenshot`, fetchOptions);
       
       // レスポンスチェック
       if (!response.ok) {
@@ -689,16 +705,20 @@ async function takeShortsScreenshot(shortsUrl, timestamp) {
 
       // 正常なレスポンスの処理
       const data = await response.json();
-      console.log('Shorts スクリーンショット API レスポンス:', data);
+      console.log('Shorts スクリーンショット API レスポンス (詳細):', JSON.stringify(data, null, 2));
       
-      if (!data.publicUrl) {
+      // データ構造に応じてURLを抽出（ネストされたデータ対応）
+      const imageUrl = extractImageUrl(data);
+      if (!imageUrl) {
         throw new Error('スクリーンショットの URL が見つかりません');
       }
       
+      console.log('抽出された画像URL:', imageUrl);
+      
       // 結果を表示
-      showScreenshot(data.publicUrl, shortsUrl);
+      showScreenshot(imageUrl, shortsUrl);
       updateUIState('success');
-      saveToHistory(shortsUrl, data.publicUrl);
+      saveToHistory(shortsUrl, imageUrl);
       
       return data;
     } catch (fetchError) {
@@ -972,7 +992,7 @@ async function takeBatchScreenshots(videoId, startSec, endSec, maxConcurrency) {
       endSec,
       maxConcurrency,
       API_BASE_URL: config.API_BASE_URL,
-      完全URL: `${config.API_BASE_URL}/api/youtube/batch` // YouTubeエンドポイントを使用
+      完全URL: `${config.API_BASE_URL}/api/batch` 
     });
 
     // フェッチオプション設定
@@ -986,13 +1006,14 @@ async function takeBatchScreenshots(videoId, startSec, endSec, maxConcurrency) {
         videoId: extractedId,
         startSec,
         endSec,
-        maxConcurrency
+        maxConcurrency,
+        type: 'shorts' // タイプを明示的に指定
       })
     };
     
     try {
-      // APIリクエスト実行 - YouTubeエンドポイントを使用
-      const response = await fetch(`${config.API_BASE_URL}/api/youtube/batch`, fetchOptions);
+      // APIリクエスト実行
+      const response = await fetch(`${config.API_BASE_URL}/api/batch`, fetchOptions);
       
       // レスポンスチェック
       if (!response.ok) {
@@ -1015,14 +1036,18 @@ async function takeBatchScreenshots(videoId, startSec, endSec, maxConcurrency) {
 
       // 正常なレスポンスの処理
       const data = await response.json();
-      console.log('バッチ処理 API レスポンス:', data);
+      console.log('バッチ処理 API レスポンス (詳細):', JSON.stringify(data, null, 2));
       
-      if (!data.urls || data.urls.length === 0) {
+      // バッチ処理の結果を取得
+      const urls = extractBatchUrls(data);
+      if (!urls || urls.length === 0) {
         throw new Error('スクリーンショットの URL が見つかりません');
       }
       
+      console.log('抽出されたバッチURL:', urls);
+      
       // 結果を表示
-      showBatchResults(data, videoId);
+      showBatchResults({ urls, videoId: extractedId }, videoId);
       updateUIState('success');
       
       return data;
@@ -1042,4 +1067,79 @@ async function takeBatchScreenshots(videoId, startSec, endSec, maxConcurrency) {
     updateUIState('error');
     throw error;
   }
+}
+
+// APIレスポンスから画像URLを抽出する関数
+function extractImageUrl(data) {
+  // APIレスポンスの構造に応じてURLを抽出
+  // 1. 直接publicUrlがある場合
+  if (data && data.publicUrl) {
+    return data.publicUrl;
+  }
+  
+  // 2. dataオブジェクト内にpublicUrlがある場合
+  if (data && data.data && data.data.publicUrl) {
+    return data.data.publicUrl;
+  }
+  
+  // 3. dataオブジェクト内にimage_urlがある場合
+  if (data && data.data && data.data.image_url) {
+    return data.data.image_url;
+  }
+  
+  // 4. status.successとurlがある場合
+  if (data && data.status === 'success' && data.url) {
+    return data.url;
+  }
+  
+  // 5. 他の可能性を探る
+  if (data && data.data && data.data.url) {
+    return data.data.url;
+  }
+  
+  // 6. 複数URLの最初の要素
+  if (data && data.urls && data.urls.length > 0) {
+    return data.urls[0];
+  }
+  
+  // URLが見つからない場合
+  return null;
+}
+
+// バッチ処理の結果からURLリストを抽出する関数
+function extractBatchUrls(data) {
+  // 1. data.urlsがある場合
+  if (data && data.urls && Array.isArray(data.urls)) {
+    return data.urls;
+  }
+  
+  // 2. data.data.urlsがある場合
+  if (data && data.data && data.data.urls && Array.isArray(data.data.urls)) {
+    return data.data.urls;
+  }
+  
+  // 3. data.resultsがある場合
+  if (data && data.results && Array.isArray(data.results)) {
+    // 各結果からURLを抽出
+    return data.results.map(item => {
+      if (item.publicUrl) return item.publicUrl;
+      if (item.image_url) return item.image_url;
+      if (item.url) return item.url;
+      return null;
+    }).filter(url => url !== null);
+  }
+  
+  // 4. data.data.resultsがある場合
+  if (data && data.data && data.data.results && Array.isArray(data.data.results)) {
+    // 各結果からURLを抽出
+    return data.data.results.map(item => {
+      if (item.publicUrl) return item.publicUrl;
+      if (item.image_url) return item.image_url;
+      if (item.url) return item.url;
+      return null;
+    }).filter(url => url !== null);
+  }
+  
+  // 見つからない場合
+  return null;
 }
